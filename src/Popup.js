@@ -16,7 +16,8 @@ const propTypes = {
   selected: PropTypes.object,
   eventComponent: elementType,
   eventWrapperComponent: elementType,
-  dayHeaderFormat: dateFormat
+  dayHeaderFormat: dateFormat,
+  onClose: PropTypes.func
 }
 class Popup extends React.Component {
 
@@ -69,6 +70,16 @@ class Popup extends React.Component {
             />
           )
         }
+        <div className='rbc-overlay-header' style={{borderTop: "1px solid #e5e5e5", margin: "5px -10px -10px", padding: "5px 15px", textAlign: "center"}}>
+            <a href="#" onClick={(e) => {
+                e.preventDefault();
+                if (this.props.onClose) {
+                  this.props.onClose();
+                }
+              }}>
+              Schließen
+            </a>
+        </div>
       </div>
     )
   }

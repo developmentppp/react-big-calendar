@@ -266,6 +266,7 @@ class MonthView extends React.Component {
           slotStart={overlay.date}
           slotEnd={overlay.end}
           onSelect={this.handleSelectEvent}
+          onClose={() => this.setState({overlay: null})}
         />
       </Overlay>
     )
