@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { findDOMNode } from 'react-dom';
 import cn from 'classnames';
 
 import Selection, { getBoundsForNode, isEvent } from './Selection';
@@ -62,6 +61,16 @@ class DaySlot extends React.Component {
   static defaultProps = { dragThroughEvents: true };
   state = { selecting: false };
 
+  constructor(props) {
+    super(props);
+    this.timeColumnRef = React.createRef();
+  }
+
+  // Get the root DOM element (replaces findDOMNode usage)
+  getRootElement = () => {
+    return this.timeColumnRef.current && this.timeColumnRef.current.getRootElement();
+  }
+
   componentDidMount() {
     this.props.selectable
     && this._selectable()
@@ -71,10 +80,10 @@ class DaySlot extends React.Component {
     this._teardownSelectable();
   }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.selectable && !this.props.selectable)
+  componentDidUpdate(prevProps) {
+    if (this.props.selectable && !prevProps.selectable)
       this._selectable();
-    if (!nextProps.selectable && this.props.selectable)
+    if (!this.props.selectable && prevProps.selectable)
       this._teardownSelectable();
   }
 
@@ -102,6 +111,7 @@ class DaySlot extends React.Component {
     return (
       <TimeColumn
         {...props}
+        ref={this.timeColumnRef}
         className={cn(
           'rbc-day-slot',
           dates.isToday(max) && 'rbc-today'
@@ -201,8 +211,8 @@ class DaySlot extends React.Component {
   };
 
   _selectable = () => {
-    let node = findDOMNode(this);
-    let selector = this._selector = new Selection(()=> findDOMNode(this))
+    let node = this.getRootElement();
+    let selector = this._selector = new Selection(() => this.getRootElement())
 
     let maybeSelect = (box) => {
       let onSelecting = this.props.onSelecting
@@ -224,7 +234,8 @@ class DaySlot extends React.Component {
 
     let selectionState = ({ y }) => {
       let { step, min, max } = this.props;
-      let { top, bottom } = getBoundsForNode(node)
+      let currentNode = this.getRootElement();
+      let { top, bottom } = getBoundsForNode(currentNode)
 
       let mins = this._totalMin;
 
@@ -260,12 +271,12 @@ class DaySlot extends React.Component {
     selector.on('mousedown', (box) => {
       if (this.props.selectable !== 'ignoreEvents') return
 
-      return !isEvent(findDOMNode(this), box)
+      return !isEvent(this.getRootElement(), box)
     })
 
     selector
       .on('click', (box) => {
-        if (!isEvent(findDOMNode(this), box))
+        if (!isEvent(this.getRootElement(), box))
           this._selectSlot({ ...selectionState(box), action: 'click' })
 
         this.setState({ selecting: false })

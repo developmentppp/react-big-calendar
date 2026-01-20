@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import cn from 'classnames';
-import { findDOMNode } from 'react-dom';
 
 import dates from './utils/dates';
 import localizer from './localizer'
@@ -80,14 +79,14 @@ export default class TimeGrid extends Component {
     this.state = { gutterWidth: undefined, isOverflowing: null };
     this.handleSelectEvent = this.handleSelectEvent.bind(this)
     this.handleHeaderClick = this.handleHeaderClick.bind(this)
-  }
-
-  componentWillMount() {
+    this.contentRef = React.createRef();
+    this.timeIndicatorRef = React.createRef();
+    this.headerCellRef = React.createRef();
     this._gutters = [];
-    this.calculateScroll();
   }
 
   componentDidMount() {
+    this.calculateScroll();
     this.checkOverflow();
 
     if (this.props.width == null) {
@@ -103,25 +102,22 @@ export default class TimeGrid extends Component {
     window.clearTimeout(this._timeIndicatorTimeout);
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps) {
     if (this.props.width == null && !this.state.gutterWidth) {
       this.measureGutter()
+    }
+
+    // When paginating, reset scroll
+    if (
+      !dates.eq(this.props.range[0], prevProps.range[0], 'minute') ||
+      !dates.eq(this.props.scrollToTime, prevProps.scrollToTime, 'minute')
+    ) {
+      this.calculateScroll();
     }
 
     this.applyScroll();
     this.positionTimeIndicator();
     //this.checkOverflow()
-  }
-
-  componentWillReceiveProps(nextProps) {
-    const { range, scrollToTime } = this.props;
-    // When paginating, reset scroll
-    if (
-      !dates.eq(nextProps.range[0], range[0], 'minute') ||
-      !dates.eq(nextProps.scrollToTime, scrollToTime, 'minute')
-    ) {
-      this.calculateScroll();
-    }
   }
 
   handleSelectAllDaySlot = (slots, slotInfo) => {
@@ -172,15 +168,15 @@ export default class TimeGrid extends Component {
 
     allDayEvents.sort((a, b) => sortEvents(a, b, this.props))
 
-    let gutterRef = ref => this._gutters[1] = ref && findDOMNode(ref);
+    let gutterRef = ref => this._gutters[1] = ref && ref.getRootElement();
 
     return (
       <div className='rbc-time-view'>
 
         {this.renderHeader(range, allDayEvents, width)}
 
-        <div ref='content' className='rbc-time-content'>
-          <div ref='timeIndicator' className='rbc-current-time-indicator' />
+        <div ref={this.contentRef} className='rbc-time-content'>
+          <div ref={this.timeIndicatorRef} className='rbc-current-time-indicator' />
 
           <TimeColumn
             {...this.props}
@@ -235,7 +231,7 @@ export default class TimeGrid extends Component {
 
     return (
       <div
-        ref='headerCell'
+        ref={this.headerCellRef}
         className={cn(
           'rbc-time-header',
           isOverflowing && 'rbc-overflowing'
@@ -361,8 +357,10 @@ export default class TimeGrid extends Component {
 
   applyScroll() {
     if (this._scrollRatio) {
-      const { content } = this.refs;
-      content.scrollTop = content.scrollHeight * this._scrollRatio;
+      const content = this.contentRef.current;
+      if (content) {
+        content.scrollTop = content.scrollHeight * this._scrollRatio;
+      }
       // Only do this once
       this._scrollRatio = null;
     }
@@ -380,7 +378,10 @@ export default class TimeGrid extends Component {
   checkOverflow() {
     if (this._updatingOverflow) return;
 
-    let isOverflowing = this.refs.content.scrollHeight > this.refs.content.clientHeight;
+    const content = this.contentRef.current;
+    if (!content) return;
+
+    let isOverflowing = content.scrollHeight > content.clientHeight;
 
     if (this.state.isOverflowing !== isOverflowing) {
       this._updatingOverflow = true;
@@ -397,7 +398,9 @@ export default class TimeGrid extends Component {
     const secondsGrid = dates.diff(max, min, 'seconds');
     const secondsPassed = dates.diff(now, min, 'seconds');
 
-    const timeIndicator = this.refs.timeIndicator;
+    const timeIndicator = this.timeIndicatorRef.current;
+    if (!timeIndicator) return;
+
     const factor = secondsPassed / secondsGrid;
     const timeGutter = this._gutters[this._gutters.length - 1];
 

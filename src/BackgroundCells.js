@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { findDOMNode } from 'react-dom';
 import cn from 'classnames';
 
 import dates from './utils/dates';
@@ -34,6 +33,7 @@ class BackgroundCells extends React.Component {
     this.state = {
       selecting: false
     };
+    this.rootRef = React.createRef();
   }
 
   componentDidMount(){
@@ -45,11 +45,11 @@ class BackgroundCells extends React.Component {
     this._teardownSelectable();
   }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.selectable && !this.props.selectable)
+  componentDidUpdate(prevProps) {
+    if (this.props.selectable && !prevProps.selectable)
       this._selectable();
 
-    if (!nextProps.selectable && this.props.selectable)
+    if (!this.props.selectable && prevProps.selectable)
       this._teardownSelectable();
   }
 
@@ -58,7 +58,7 @@ class BackgroundCells extends React.Component {
     let { selecting, startIdx, endIdx } = this.state;
 
     return (
-      <div className='rbc-row-bg'>
+      <div ref={this.rootRef} className='rbc-row-bg'>
         {range.map((date, index) => {
           let selected =  selecting && index >= startIdx && index <= endIdx;
           return (
@@ -83,11 +83,12 @@ class BackgroundCells extends React.Component {
   }
 
   _selectable(){
-    let node = findDOMNode(this);
+    let node = this.rootRef.current;
     let selector = this._selector = new Selection(this.props.container)
 
     selector.on('selecting', box => {
       let { range, rtl } = this.props;
+      let currentNode = this.rootRef.current;
 
       let startIdx = -1;
       let endIdx = -1;
@@ -96,8 +97,8 @@ class BackgroundCells extends React.Component {
         notify(this.props.onSelectStart, [box]);
         this._initial = { x: box.x, y: box.y };
       }
-      if (selector.isSelected(node)) {
-        let nodeBox = getBoundsForNode(node);
+      if (selector.isSelected(currentNode)) {
+        let nodeBox = getBoundsForNode(currentNode);
 
         ({ startIdx, endIdx } = dateCellSelection(
             this._initial
@@ -116,17 +117,18 @@ class BackgroundCells extends React.Component {
     selector.on('mousedown', (box) => {
       if (this.props.selectable !== 'ignoreEvents') return
 
-      return !isEvent(findDOMNode(this), box)
+      return !isEvent(this.rootRef.current, box)
     })
 
     selector
       .on('click', point => {
-        if (!isEvent(findDOMNode(this), point)) {
-          let rowBox = getBoundsForNode(node)
+        let currentNode = this.rootRef.current;
+        if (!isEvent(currentNode, point)) {
+          let rowBox = getBoundsForNode(currentNode)
           let { range, rtl } = this.props;
 
           if (pointInBox(rowBox, point)) {
-            let width = slotWidth(getBoundsForNode(node),  range.length);
+            let width = slotWidth(getBoundsForNode(currentNode),  range.length);
             let currentCell = getCellAtX(rowBox, point.x, width, rtl, range.length);
 
             this._selectSlot({

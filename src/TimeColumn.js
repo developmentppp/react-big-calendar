@@ -31,6 +31,16 @@ export default class TimeColumn extends Component {
     dayWrapperComponent: BackgroundWrapper,
   }
 
+  constructor(props) {
+    super(props)
+    this.rootRef = React.createRef()
+  }
+
+  // Expose DOM node for parent components (replaces findDOMNode usage)
+  getRootElement() {
+    return this.rootRef.current
+  }
+
   renderTimeSliceGroup(key, isNow, date) {
     const { dayWrapperComponent, timeslots, showLabels, step, timeGutterFormat, culture } = this.props;
 
@@ -76,6 +86,7 @@ export default class TimeColumn extends Component {
 
     return (
       <div
+        ref={this.rootRef}
         className={cn(className, 'rbc-time-column')}
         style={style}
       >

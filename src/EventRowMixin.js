@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { findDOMNode } from 'react-dom';
 import EventCell from './EventCell';
 import getHeight from 'dom-helpers/query/height';
 import { accessor, elementType } from './utils/propTypes';
@@ -68,7 +67,12 @@ export default {
     )
   },
 
+  // Note: This method requires the component to have a rootRef.
+  // When called, `this.rootRef.current` should be the root DOM element.
   getRowHeight(){
-    getHeight(findDOMNode(this))
+    if (this.rootRef && this.rootRef.current) {
+      return getHeight(this.rootRef.current)
+    }
+    return 0
   }
 }

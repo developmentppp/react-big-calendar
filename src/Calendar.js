@@ -53,6 +53,11 @@ let now = new Date();
  * function `endAccessor` that returns the end date + 1 day for those events that end at midnight.
  */
 class Calendar extends React.Component {
+ constructor(props) {
+   super(props);
+   this.viewRef = React.createRef();
+ }
+
  static propTypes = {
 
    /**
@@ -556,7 +561,7 @@ class Calendar extends React.Component {
          />
        }
        <View
-         ref='view'
+         ref={this.viewRef}
          {...props}
          {...formats}
          culture={culture}
